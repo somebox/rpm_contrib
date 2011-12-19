@@ -27,23 +27,22 @@ DependencyDetection.defer do
       alias get_without_newrelic_trace get
       alias get get_with_newrelic_trace
     end
-  end
-  
-  executes do
-    ::Typhoeus::Multi.instance_eval do
-      def perform_with_newrelic_trace
-        metrics = ["External/backend/Typhoeus/MULTI","External/backend/all"]
+
+    ::Curl::Multi.class_eval do
+      # TODO: http
+      def perform_with_newrelic_trace(*args, &block)
+        metrics = ["External/Typhoeus::Multi"]
         if NewRelic::Agent::Instrumentation::MetricFrame.recording_web_transaction?
           metrics << "External/allWeb"
         else
           metrics << "External/allOther"
         end
         self.class.trace_execution_scoped metrics do
-          get_without_newrelic_trace
+          perform_without_newrelic_trace(*args, &block)
         end
-        alias perform_without_newrelic_trace perform
-        alias perform perform_with_newrelic_trace
       end
+      alias perform_without_newrelic_trace perform
+      alias perform perform_with_newrelic_trace
     end
   end
 end
